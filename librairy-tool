@@ -1,0 +1,681 @@
+import tkinter as tk
+from tkinter import messagebox
+import json
+
+class tool:
+    def __init__(self, root):
+        self.root=root
+        self.root.title("library manegment tool")
+        self.root.geometry("900x700")
+        self.root.resizable(False,False)
+        self.root.configure(bg="#FFFFFF")
+        self.books=[]
+        self.hue=0
+        self.load_books()
+        self.setup_ui()
+        self.quick_access()
+        self.show_books()
+        self.root.protocol("WM_DELETE_WINDOW", self.close_program)
+    def close_program(self):
+        self.save_books()
+        self.root.destroy()
+    def save_books(self):
+        with open("books.json", "w") as file:
+            json.dump(self.books, file, indent=4)
+    def load_books(self):
+        try:
+            with open("books.json", "r") as file:
+                self.books = json.load(file)
+        except FileNotFoundError:
+            self.books = []
+    def setup_ui(self):
+        self.title_label=tk.Label(self.root,text="my library",font=("Sans Serif",22,"bold"),bg="#FFFFFF",fg="#000000")
+        self.title_label.pack(pady=10)
+        self.content_frame = tk.Frame(
+    self.root,
+    bg="#FFFFFF"
+)
+        self.content_frame.pack(fill="both", expand=True)
+        left_frame=tk.Frame(self.content_frame,bg="#FFFFFF", width=200, height=600)
+        left_frame.pack_propagate(False)
+        left_frame.pack(side="left")
+        
+        divider_frame=tk.Frame(self.content_frame,bg="#F0F0F0", width=25, height=600, relief="sunken",borderwidth=10)
+        divider_frame.pack_propagate(False)
+        divider_frame.pack(side="left")
+        
+        main_frame=tk.Frame(self.content_frame,bg="#FFFFFF", width=650, height=600)
+        main_frame.pack_propagate(False)
+        main_frame.pack(side="left")
+        
+        
+        self.add_book=tk.Button(left_frame,text="add_book",font=("Sans Serif",11,"bold"), bg="#ffffff", fg="#000000",
+                                command=self.add_book_page
+                                )
+        self.add_book.pack(pady=20, side="top")
+        self.search_frame = tk.Frame(
+        main_frame,
+        bg="#FFFFFF"
+        )
+        self.search_frame.pack(side="top", pady=10)
+        self.scrollable_list = tk.Canvas(main_frame, bg = "#FFFFFF", width=650, height=600)
+        self.sb = tk.Scrollbar(
+        main_frame,
+        command=self.scrollable_list.yview
+        )
+        self.sb.pack(side="right", fill="y")
+
+        self.scrollable_list.pack(
+        side="left",
+        fill="both",
+        expand=True
+        )
+        self.scrollable_list.config(yscrollcommand=self.sb.set)
+        self.card_frame = tk.Frame(
+        self.scrollable_list,
+        bg="#FFFFFF",
+        )
+        self.scrollable_list.create_window(
+        (0, 0),
+        window=self.card_frame,
+        anchor="nw",
+        width=600
+        )
+        self.scrollable_list.configure(
+        scrollregion=self.scrollable_list.bbox("all")
+        )
+        self.sort_by = tk.StringVar()
+        self.sort_by.set("ABC")
+        
+        self.sort_menu = tk.OptionMenu(
+            left_frame,
+            self.sort_by,
+            "ABC",
+            "ID",
+            "Year",
+            command=self.sort_books
+            )
+        self.sort_menu.pack(pady=10)
+        quick_frame = tk.Frame(
+            left_frame,
+            bg="#FFFFFF"
+        )
+        quick_frame.pack(pady=20)
+        tk.Label(
+            quick_frame,
+            text="Quick Access",
+            font=("Sans Serif", 12, "bold"),
+            bg="#FFFFFF",
+            fg="#000000"
+        ).pack(pady=5)
+        self.total_label = tk.Label(
+            quick_frame,
+            text="Total books: 0",
+            bg="#FFFFFF",
+            fg="#000000"
+        )
+        self.total_label.pack()
+        self.avalable_label = tk.Label(
+            quick_frame,
+            text="avalable books: 0",
+            bg="#FFFFFF",
+            fg="#000000"
+        )
+        self.avalable_label.pack()
+        self.borrowed_label = tk.Label(
+                    quick_frame,
+                    text="borrowed books: 0",
+                    bg="#FFFFFF",
+                    fg="#000000"
+                )
+        self.borrowed_label.pack()
+        self.search_by = tk.StringVar()
+        self.search_by.set("Name")
+
+        self.search_by_menu = tk.OptionMenu(
+            self.search_frame,
+            self.search_by,
+            "Name",
+            "Genre",
+            "Author"
+        )
+        self.search_by_menu.pack(side="left")
+        self.search_text = tk.StringVar()
+        self.search_entry = tk.Entry(
+        self.search_frame,
+        textvariable=self.search_text
+        )
+        self.search_text.trace_add("write", self.search_books)
+        self.search_by.trace_add("write", self.search_books)
+        self.search_entry.pack()
+    def search_books(self, *args):
+        search = self.search_text.get().lower()
+        search_by = self.search_by.get()
+
+        if search_by == "Name":
+            search_field = "name"
+
+        elif search_by == "Genre":
+            search_field = "genre"
+
+        elif search_by == "Author":
+            search_field = "author"
+
+        filtered_books = []
+
+        for book in self.books:
+            if search in book[search_field].lower():
+                filtered_books.append(book)
+
+        self.show_searched_books(filtered_books)
+    def show_searched_books(self, books):
+        for widget in self.card_frame.winfo_children():
+            widget.destroy()
+
+        for book in books:
+            card = tk.Frame(
+                self.card_frame,
+                bg="#FFFFFF",
+                borderwidth=2,
+                relief="solid",
+                width=600,
+                height=150
+            )
+            card.pack_propagate(False)
+            card.pack(pady=10, anchor="center")
+
+            tk.Label(
+            card,
+            text=book["name"],
+            font=("Sans Serif", 15, "bold"),
+            bg="#FFFFFF",
+            fg="#000000"
+            ).pack(pady=5, anchor="w")
+
+            tk.Label(
+            card,
+            text="Author: " + book["author"],
+            bg="#FFFFFF",
+            fg="#000000"
+            ).pack(anchor="w")
+
+            tk.Label(
+            card,
+            text="Year: " + book["year"],
+            bg="#FFFFFF",
+            fg="#000000"
+            ).pack(anchor="w")
+
+            tk.Label(
+            card,
+            text="Genre: " + book["genre"],
+            bg="#FFFFFF",
+            fg="#000000"
+        ).pack(anchor="w")
+
+            tk.Label(
+            card,
+            text="ID: " + book["id"],
+            bg="#FFFFFF",
+            fg="#000000"
+        ).pack(anchor="w")
+
+            tk.Label(
+        card,
+        text="Status: " + book["status"],
+        bg="#FFFFFF",
+        fg="#000000"
+        ).pack(anchor="w")
+            tk.Button(
+                card,
+                text="Change status",
+                command=lambda b=book: self.change_status(b)
+            ).pack(pady=5,side="left")
+            if book["status"] == "out of stock":
+                oos_text = "restock"
+            else:
+                oos_text = "out of stock"
+            oos_button = tk.Button(
+                card,
+                text=oos_text,
+                command=lambda b=book: self.change_stock(b)
+            ).pack(pady=5,side="left")
+            tk.Button(
+            card,
+            text="Delete book",
+            command=lambda b=book: self.delete_book(b)
+            ).pack(pady=5, side="left")
+            tk.Button(
+            card,
+            text="Edit book",
+            command=lambda b=book: self.Edit_book(b)
+            ).pack(pady=5, side="left")
+        self.card_frame.update_idletasks()
+            
+        self.scrollable_list.configure(
+    scrollregion=self.scrollable_list.bbox("all")
+)
+    def sort_books(self, choice):
+        if self.sort_by.get() == "ABC":
+            self.books = sorted(self.books, key=lambda book: book["name"])
+        elif self.sort_by.get() == "ID":
+            self.books = sorted(self.books, key=lambda book: int(book["id"]))
+        elif self.sort_by.get() == "Year":
+            try:
+                self.books = sorted(
+                self.books,
+                key=lambda book: int(book["year"])
+            )
+            except ValueError:
+                messagebox.showwarning(
+                "Invalid year",
+                "One or more of the book's years has a word btw."
+            )
+        self.show_books()
+    
+    def show_books(self):
+        for widget in self.card_frame.winfo_children():
+            widget.destroy()
+
+        for book in self.books:
+            card = tk.Frame(
+                self.card_frame,
+                bg="#FFFFFF",
+                borderwidth=2,
+                relief="solid",
+                width=600,
+                height=180
+            )
+            card.pack_propagate(False)
+            card.pack(pady=10, anchor="center")
+
+            tk.Label(
+            card,
+            text=book["name"],
+            font=("Sans Serif", 15, "bold"),
+            bg="#FFFFFF",
+            fg="#000000"
+            ).pack(pady=5, anchor="w")
+
+            tk.Label(
+            card,
+            text="Author: " + book["author"],
+            bg="#FFFFFF",
+            fg="#000000"
+            ).pack(anchor="w")
+
+            tk.Label(
+            card,
+            text="Year: " + book["year"],
+            bg="#FFFFFF",
+            fg="#000000"
+            ).pack(anchor="w")
+
+            tk.Label(
+            card,
+            text="Genre: " + book["genre"],
+            bg="#FFFFFF",
+            fg="#000000"
+        ).pack(anchor="w")
+
+            tk.Label(
+            card,
+            text="ID: " + book["id"],
+            bg="#FFFFFF",
+            fg="#000000"
+        ).pack(anchor="w")
+
+            tk.Label(
+        card,
+        text="Status: " + book["status"],
+        bg="#FFFFFF",
+        fg="#000000"
+        ).pack(anchor="w")
+            tk.Button(
+    card,
+    text="Change status",
+    command=lambda b=book: self.change_status(b)
+).pack(pady=5,side="left")
+            if book["status"] == "out of stock":
+                oos_text = "restock"
+            else:
+                oos_text = "out of stock"
+            oos_button = tk.Button(
+                card,
+                text= oos_text,
+                command=lambda b=book: self.change_stock(b)
+            )
+            oos_button.pack(pady=5,side="left")
+            tk.Button(
+            card,
+            text="Delete book",
+            command=lambda b=book: self.delete_book(b)
+            ).pack(pady=5, side="left")
+            tk.Button(
+            card,
+            text="Edit book",
+            command=lambda b=book: self.Edit_book(b)
+            ).pack(pady=5, side="left")
+        self.card_frame.update_idletasks()
+
+
+        self.scrollable_list.configure(
+    scrollregion=self.scrollable_list.bbox("all")
+)
+    def change_status(self, book):
+        if book["status"] == "avalable":
+            book["status"] = "borrowed"
+        elif book["status"] == "borrowed":
+            book["status"] = "avalable"
+        self.save_books()
+        self.quick_access()
+        self.show_books()
+    def change_stock(self, book):
+        if book["status"] == "avalable" or book["status"] == "borrowed":
+            book["status"] = "out of stock"
+        elif book["status"] == "out of stock":
+            book["status"] = "avalable"
+        self.save_books()
+        self.show_books()
+    def delete_book(self, book):
+        answer = messagebox.askyesno(
+        "Delete book",
+        "Are you sure you want to delete this book?"
+    )
+
+        if answer:
+            self.books.remove(book)
+            self.save_books()
+            self.quick_access()
+            self.show_books()
+            messagebox.showinfo(
+                "Deleted book",
+                "book deleted successfully."
+            )
+    def quick_access(self):
+        total = len(self.books)
+        avalable = 0
+        borrowed= 0
+        for book in self.books:
+            if book["status"] == "avalable":
+                avalable = avalable +1
+            elif book["status"] == "borrowed":
+                borrowed = borrowed +1
+        self.total_label.config(text=f"Total books: {total}")
+        self.avalable_label.config(text=f"Avalable books: {avalable}")
+        self.borrowed_label.config(text=f"Borrowed books: {borrowed}")
+    def add_book_page(self):
+        add_window = tk.Toplevel(self.root)
+        add_window.title("add book page")
+        add_window.resizable(False,False)
+        add_window.geometry("400x600")
+        add_window.configure(bg="#FFFFFF")
+        
+        lable = tk.Label(
+        add_window,
+        text="please enter the info",
+        font=("Sans Serif",16,"bold"),
+        bg="#FFFFFF",
+        fg="#000000"
+    ).pack(pady=10)
+        
+        name_entry_lable = tk.Label(
+                add_window,
+                text="name:",
+                font=("Sans Serif",10,"bold"),
+                bg="#FFFFFF",
+                fg="#000000"
+            ).pack(pady=10)
+        
+        name_entry = tk.Entry(
+        add_window,
+                font=("Sans Serif",10,"bold"),
+                bg="#FFFFFF",
+                fg="#000000"
+            )
+        name_entry.pack(pady=10)
+        
+        author_entry_lable = tk.Label(
+                        add_window,
+                        text="author:",
+                        font=("Sans Serif",10,"bold"),
+                        bg="#FFFFFF",
+                        fg="#000000"
+                    ).pack(pady=10)
+        
+        author_entry = tk.Entry(
+                add_window,
+                        font=("Sans Serif",10,"bold"),
+                        bg="#FFFFFF",
+                        fg="#000000"
+                    )
+        author_entry.pack(pady=10)
+        
+        year_entry_lable = tk.Label(
+                                add_window,
+                                text="year:",
+                                font=("Sans Serif",10,"bold"),
+                                bg="#FFFFFF",
+                                fg="#000000"
+                            ).pack(pady=10)
+                
+        year_entry = tk.Entry(
+                        add_window,
+                                font=("Sans Serif",10,"bold"),
+                                bg="#FFFFFF",
+                                fg="#000000"
+                            )
+        year_entry.pack(pady=10)
+        
+        genre_entry_lable = tk.Label(
+                        add_window,
+                        text="genre:",
+                        font=("Sans Serif",10,"bold"),
+                        bg="#FFFFFF",
+                        fg="#000000"
+                    ).pack(pady=10)
+                
+        genre_entry = tk.Entry(
+                add_window,
+                        font=("Sans Serif",10,"bold"),
+                        bg="#FFFFFF",
+                        fg="#000000"
+                    )
+        genre_entry.pack(pady=10)
+                
+        id_entry_lable = tk.Label(
+                        add_window,
+                                text="id:",
+                                font=("Sans Serif",10,"bold"),
+                                bg="#FFFFFF",
+                                fg="#000000"
+                            ).pack(pady=10)
+                
+        id_entry = tk.Entry(
+                        add_window,
+                                font=("Sans Serif",10,"bold"),
+                                bg="#FFFFFF",
+                                fg="#000000"
+                            )
+        id_entry.pack(pady=10)
+        
+        status_menu_lable = tk.Label(
+                                add_window,
+                                        text="status:",
+                                        font=("Sans Serif",10,"bold"),
+                                        bg="#FFFFFF",
+                                        fg="#000000"
+                                    ).pack(pady=10)
+        
+        self.status = tk.StringVar()
+        self.status.set("avalable")
+                
+        self.status_menu = tk.OptionMenu(
+                add_window,
+                self.status,
+                "avalable",
+                "borrowed"
+                )
+        self.status_menu.pack(pady=10)
+    
+        def test_command():
+            book = {
+            "name": name_entry.get(),
+            "author": author_entry.get(),
+            "year": year_entry.get(),
+            "genre": genre_entry.get(),
+            "id": id_entry.get(),
+            "status": self.status.get(),
+            }
+            self.books.append(book)
+            self.save_books()
+            self.quick_access()
+            add_window.destroy()
+            self.show_books()
+        
+        test_button = tk.Button(
+            add_window,
+            text="add book",
+            font=("Sans Serif",10,"bold"),
+            bg="#ffffff",
+            fg="#000000",
+            command=test_command
+        )
+        test_button.pack(side="bottom")
+    def Edit_book(self, book):
+            add_window = tk.Toplevel(self.root)
+            add_window.title("Edit book")
+            add_window.resizable(False,False)
+            add_window.geometry("400x600")
+            add_window.configure(bg="#FFFFFF")
+            
+            lable = tk.Label(
+            add_window,
+            text="please enter the info you want to update",
+            font=("Sans Serif",16,"bold"),
+            bg="#FFFFFF",
+            fg="#000000"
+        ).pack(pady=10)
+            
+            name_entry_lable = tk.Label(
+                    add_window,
+                    text="name:",
+                    font=("Sans Serif",10,"bold"),
+                    bg="#FFFFFF",
+                    fg="#000000"
+                ).pack(pady=10)
+            
+            name_entry = tk.Entry(
+            add_window,
+                    font=("Sans Serif",10,"bold"),
+                    bg="#FFFFFF",
+                    fg="#000000"
+                )
+            name_entry.insert(0, book["name"])
+            name_entry.pack(pady=10)
+            
+            author_entry_lable = tk.Label(
+                            add_window,
+                            text="author:",
+                            font=("Sans Serif",10,"bold"),
+                            bg="#FFFFFF",
+                            fg="#000000"
+                        ).pack(pady=10)
+            
+            author_entry = tk.Entry(
+                    add_window,
+                            font=("Sans Serif",10,"bold"),
+                            bg="#FFFFFF",
+                            fg="#000000"
+                        )
+            author_entry.insert(0, book["author"])
+            author_entry.pack(pady=10)
+            
+            year_entry_lable = tk.Label(
+                                    add_window,
+                                    text="year:",
+                                    font=("Sans Serif",10,"bold"),
+                                    bg="#FFFFFF",
+                                    fg="#000000"
+                                ).pack(pady=10)
+                    
+            year_entry = tk.Entry(
+                            add_window,
+                                    font=("Sans Serif",10,"bold"),
+                                    bg="#FFFFFF",
+                                    fg="#000000"
+                                )
+            year_entry.insert(0, book["year"])
+            year_entry.pack(pady=10)
+            
+            genre_entry_lable = tk.Label(
+                            add_window,
+                            text="genre:",
+                            font=("Sans Serif",10,"bold"),
+                            bg="#FFFFFF",
+                            fg="#000000"
+                        ).pack(pady=10)
+            
+            genre_entry = tk.Entry(
+                    add_window,
+                            font=("Sans Serif",10,"bold"),
+                            bg="#FFFFFF",
+                            fg="#000000"
+                        )
+            genre_entry.insert(0, book["genre"])
+            genre_entry.pack(pady=10)
+                    
+            id_entry_lable = tk.Label(
+                            add_window,
+                                    text="cannot change id.",
+                                    font=("Sans Serif",10,"bold"),
+                                    bg="#FFFFFF",
+                                    fg="#000000"
+                                ).pack(pady=10)
+                    
+            
+            status_menu_lable = tk.Label(
+                                    add_window,
+                                            text="status:",
+                                            font=("Sans Serif",10,"bold"),
+                                            bg="#FFFFFF",
+                                            fg="#000000"
+                                        ).pack(pady=10)
+            
+            self.status = tk.StringVar()
+            self.status.set(book["status"])
+                    
+            self.status_menu = tk.OptionMenu(
+                    add_window,
+                    self.status,
+                    "avalable",
+                    "borrowed"
+                    )
+            self.status_menu.pack(pady=10)
+        
+            def Edit_command():
+                book["name"] = name_entry.get()
+                book["author"] = author_entry.get()
+                book["year"] = year_entry.get()
+                book["genre"] = genre_entry.get()
+                book["status"] = self.status.get()
+                self.save_books()
+                self.quick_access
+                add_window.destroy()
+                self.show_books()
+            
+            Edit_button = tk.Button(
+                add_window,
+                text="Edit book",
+                font=("Sans Serif",10,"bold"),
+                bg="#ffffff",
+                fg="#000000",
+                command=Edit_command
+            )
+            Edit_button.pack(side="bottom")
+        
+        
+if __name__=="__main__":
+    root=tk.Tk()
+    tool(root)
+    root.mainloop()
